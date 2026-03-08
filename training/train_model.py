@@ -2,7 +2,8 @@ import os
 import sys
 import torch
 from torch.utils.data import Dataset, DataLoader
-from transformers import BertForSequenceClassification, AdamW
+from transformers import BertForSequenceClassification
+from torch.optim import AdamW
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from sklearn.model_selection import train_test_split
 import pandas as pd
