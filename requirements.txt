@@ -1,5 +1,9 @@
+# ── CPU-only PyTorch (avoids the 800MB CUDA wheel — fits in 512MB RAM) ────────
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.2+cpu
+torchvision==0.17.2+cpu
+
 # ── Core ML & Data ─────────────────────────────────────────────────────────
-torch>=2.0.0,<3.0.0
 transformers>=4.30.0,<5.0.0
 huggingface-hub>=0.20.0,<2.0.0
 numpy>=1.24.0,<2.0.0
