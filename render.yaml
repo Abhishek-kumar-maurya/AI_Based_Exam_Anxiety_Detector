@@ -1,31 +1,20 @@
 services:
-  # ─── Backend: FastAPI inference API ───────────────────────────────────────────
   - type: web
-    name: exam-anxiety-api
+    name: exam-anxiety-detector
     runtime: python
     region: oregon
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt && pip install huggingface-hub
+    startCommand: bash start.sh
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      # ── Required: set this in the Render dashboard ─────────────────────────
+      # Your Hugging Face repo id that holds the trained model weights.
+      # Example: your-username/exam-anxiety-bert
+      # Upload once with: python scripts/upload_model_to_hub.py --repo <id>
       - key: HF_MODEL_REPO
-        sync: false   # set this in the Render dashboard to your HF repo id (optional)
-      - key: MODEL_DIR
-        value: model/bert_anxiety_model
-
-  # ─── Frontend: Streamlit UI ────────────────────────────────────────────────────
-  - type: web
-    name: exam-anxiety-ui
-    runtime: python
-    region: oregon
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run frontend/app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: API_URL
-        sync: false   # set this in the Render dashboard after the backend is deployed
-                      # e.g. https://exam-anxiety-api.onrender.com/predict
+        sync: false
+      # ── Optional: only needed if your HF repo is private ──────────────────
+      - key: HUGGING_FACE_HUB_TOKEN
+        sync: false
