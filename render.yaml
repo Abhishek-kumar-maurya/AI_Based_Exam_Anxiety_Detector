@@ -1,0 +1,31 @@
+services:
+  # ─── Backend: FastAPI inference API ───────────────────────────────────────────
+  - type: web
+    name: exam-anxiety-api
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: HF_MODEL_REPO
+        sync: false   # set this in the Render dashboard to your HF repo id (optional)
+      - key: MODEL_DIR
+        value: model/bert_anxiety_model
+
+  # ─── Frontend: Streamlit UI ────────────────────────────────────────────────────
+  - type: web
+    name: exam-anxiety-ui
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run frontend/app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: API_URL
+        sync: false   # set this in the Render dashboard after the backend is deployed
+                      # e.g. https://exam-anxiety-api.onrender.com/predict
