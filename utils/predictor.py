@@ -230,11 +230,14 @@ class AnxietyPredictor:
             )
 
         self.device = torch.device("cpu")
-        self.tokenizer = BertTokenizer.from_pretrained(source)
+        hf_token = os.environ.get("HUGGING_FACE_HUB_TOKEN") or os.environ.get("HF_TOKEN")
+        
+        self.tokenizer = BertTokenizer.from_pretrained(source, token=hf_token)
         self.model = BertForSequenceClassification.from_pretrained(
             source,
             low_cpu_mem_usage=True,
             dtype=torch.float16,
+            token=hf_token,
         )
         self.model.to(self.device)
         self.model.eval()
