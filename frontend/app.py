@@ -1,130 +1,197 @@
-import os
+"""
+frontend/app.py
+───────────────
+Streamlit UI — sends text to the FastAPI backend and displays the result.
+Set the API_URL environment variable to point at your deployed backend.
+"""
 
+import os
 import requests
 import streamlit as st
 
-# ---------------------------------------------------------------------------
-# Configuration — the backend URL is injected via an environment variable so
-# it works both locally (localhost) and on Render (the deployed API URL).
-# ---------------------------------------------------------------------------
 API_URL = os.environ.get("API_URL", "http://localhost:8000/predict")
 
-# ── Page config ──────────────────────────────────────────────────────────────
+ANXIETY_META = {
+    "No Anxiety": {
+        "color": "#22c55e",
+        "bg": "#f0fdf4",
+        "badge": "NO ANXIETY",
+        "emoji": "✅",
+        "headline": "You're doing well!",
+        "tips": [
+            "Keep up your current routine — it's working.",
+            "Stay hydrated and get enough sleep before the exam.",
+            "A quick review of key topics will boost your confidence further.",
+        ],
+    },
+    "Low Anxiety": {
+        "color": "#3b82f6",
+        "bg": "#eff6ff",
+        "badge": "LOW ANXIETY",
+        "emoji": "🔵",
+        "headline": "A little nervous — that's normal.",
+        "tips": [
+            "Light nervousness before an exam actually sharpens focus.",
+            "Take short 5-minute breaks every hour while studying.",
+            "Practice a few past papers to build confidence.",
+        ],
+    },
+    "Moderate Anxiety": {
+        "color": "#f59e0b",
+        "bg": "#fffbeb",
+        "badge": "MODERATE ANXIETY",
+        "emoji": "🟡",
+        "headline": "You're feeling stressed — let's address it.",
+        "tips": [
+            "Try box breathing: inhale 4s, hold 4s, exhale 4s, hold 4s.",
+            "Break your study plan into smaller, daily goals.",
+            "Talk to a friend or classmate — sharing helps more than you think.",
+        ],
+    },
+    "High Anxiety": {
+        "color": "#ef4444",
+        "bg": "#fef2f2",
+        "badge": "HIGH ANXIETY",
+        "emoji": "🔴",
+        "headline": "You're under serious pressure — please seek support.",
+        "tips": [
+            "Step away from studying right now and take a proper break.",
+            "Talk to a counselor, teacher, or someone you fully trust.",
+            "Contact a student mental health helpline — you deserve support.",
+        ],
+    },
+}
+
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="AI Exam Anxiety Detector",
     page_icon="🧠",
     layout="centered",
 )
 
-# ── Anxiety level metadata ────────────────────────────────────────────────────
-ANXIETY_MAPPING = {
-    "Low Anxiety": {
-        "color": "green",
-        "emoji": "🟢 😊",
-        "message": (
-            "You seem to be handling things well. "
-            "Keep up the good work and maintain a balanced study routine!"
-        ),
-        "tips": [
-            "Take short breaks to rest your mind.",
-            "Stay hydrated and maintain a healthy sleep schedule.",
-            "Review your material confidently — you've got this!",
-        ],
-    },
-    "Moderate Anxiety": {
-        "color": "orange",
-        "emoji": "🟡 😟",
-        "message": (
-            "You are experiencing some stress. It's completely normal before exams, "
-            "but make sure to take care of yourself."
-        ),
-        "tips": [
-            "Try the Pomodoro technique: study for 25 minutes, then take a 5-minute break.",
-            "Practice deep breathing exercises when you feel overwhelmed.",
-            "Reach out to a study buddy to review materials together.",
-        ],
-    },
-    "High Anxiety": {
-        "color": "red",
-        "emoji": "🔴 😰",
-        "message": (
-            "Your text indicates a high level of anxiety or distress. "
-            "Please remember that your mental health is more important than any exam."
-        ),
-        "tips": [
-            "Stop studying for now and step away from your desk.",
-            "Talk to a friend, family member, or counselor about how you are feeling.",
-            "Consider reaching out to professional mental health resources or a student hotline.",
-        ],
-    },
-}
+# ── Custom CSS ────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+    .result-card {
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin: 16px 0;
+        border-left: 5px solid;
+    }
+    .badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-bottom: 8px;
+    }
+    .headline {
+        font-size: 22px;
+        font-weight: 700;
+        margin: 4px 0 12px 0;
+    }
+    .reason-box {
+        background: rgba(0,0,0,0.04);
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 15px;
+        line-height: 1.6;
+        margin-top: 10px;
+    }
+    .tip-item {
+        padding: 6px 0;
+        font-size: 14px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# ── UI ────────────────────────────────────────────────────────────────────────
-st.title("🧠 AI Based Exam Anxiety Detector")
+# ── Header ────────────────────────────────────────────────────────────────────
+st.title("🧠 AI Exam Anxiety Detector")
 st.markdown(
-    "Enter your thoughts or feelings about your upcoming exams, and our AI will "
-    "analyse your anxiety level and provide personalised tips."
+    "Describe how you feel about your upcoming exams in your own words. "
+    "The AI will logically analyse your message and explain its reasoning."
 )
+st.markdown("---")
 
+# ── Input form ────────────────────────────────────────────────────────────────
 with st.form("anxiety_form"):
     user_input = st.text_area(
-        "How are you feeling about your exams?",
-        height=150,
+        "How are you feeling right now?",
+        height=160,
         placeholder=(
-            "E.g., I'm feeling really stressed because I have so much to study "
-            "and so little time..."
+            "E.g. I have finals next week and I can't sleep. "
+            "Every time I open my textbook I feel my heart racing...\n\n"
+            "Write naturally — the more you share, the better the analysis."
         ),
     )
-    submit_button = st.form_submit_button("Analyse My Anxiety")
+    submitted = st.form_submit_button("Analyse", use_container_width=True)
 
-if submit_button:
-    if not user_input.strip():
-        st.warning("Please enter some text to analyse.")
+# ── Result ────────────────────────────────────────────────────────────────────
+if submitted:
+    text = user_input.strip()
+
+    if not text:
+        st.warning("Please write something before analysing.")
+    elif len(text.split()) < 4:
+        st.warning("Please write at least a sentence so the AI can analyse properly.")
     else:
-        with st.spinner("Analysing your text using BERT…"):
+        with st.spinner("Thinking..."):
             try:
-                response = requests.post(
-                    API_URL,
-                    json={"text": user_input},
-                    timeout=30,
-                )
+                resp = requests.post(API_URL, json={"text": text}, timeout=30)
 
-                if response.status_code == 200:
-                    data = response.json()
-                    level = data.get("anxiety_level", "Unknown")
+                if resp.status_code == 200:
+                    data       = resp.json()
+                    level      = data.get("anxiety_level", "No Anxiety")
                     confidence = data.get("confidence", 0.0)
+                    reason     = data.get("reason", "")
+                    meta       = ANXIETY_META.get(level, ANXIETY_META["No Anxiety"])
 
-                    if level in ANXIETY_MAPPING:
-                        mapping = ANXIETY_MAPPING[level]
-                        st.markdown("---")
-                        st.subheader("Analysis Result")
+                    # ── Result card ──────────────────────────────────────────
+                    st.markdown(
+                        f"""
+                        <div class="result-card" style="background:{meta['bg']};border-color:{meta['color']}">
+                            <span class="badge" style="background:{meta['color']};color:white">
+                                {meta['emoji']} {meta['badge']}
+                            </span>
+                            <div class="headline" style="color:{meta['color']}">{meta['headline']}</div>
+                            <div class="reason-box">{reason}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
-                        st.markdown(
-                            f"### {mapping['emoji']} "
-                            f"<span style='color:{mapping['color']}'>"
-                            f"**{level}**</span>",
-                            unsafe_allow_html=True,
+                    # ── Confidence bar ───────────────────────────────────────
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.caption("Model confidence")
+                        st.progress(confidence)
+                    with col2:
+                        st.metric(label="", value=f"{confidence:.0%}")
+
+                    # ── Tips ─────────────────────────────────────────────────
+                    st.markdown("#### 💡 What you can do")
+                    for tip in meta["tips"]:
+                        st.markdown(f"- {tip}")
+
+                    # ── Crisis notice ─────────────────────────────────────────
+                    if level == "High Anxiety":
+                        st.error(
+                            "**If you are having thoughts of harming yourself, please contact "
+                            "a mental health helpline immediately.** "
+                            "iCall (India): 9152987821 | Vandrevala Foundation: 1860-2662-345"
                         )
-                        st.caption(f"Confidence: {confidence:.2%}")
-
-                        st.info(mapping["message"])
-
-                        st.subheader("💡 Personalised Tips")
-                        for tip in mapping["tips"]:
-                            st.markdown(f"- {tip}")
-                    else:
-                        st.error(f"Unknown anxiety level returned: {level}")
 
                 else:
-                    st.error(f"API error {response.status_code}: {response.text}")
+                    st.error(f"API error {resp.status_code}: {resp.text}")
 
             except requests.exceptions.ConnectionError:
                 st.error(
-                    "⚠️ Could not reach the backend API. "
-                    f"Make sure the FastAPI server is running and `API_URL` is set correctly.\n\n"
-                    f"Current `API_URL`: `{API_URL}`"
+                    f"Could not reach the backend API.\n\nCurrent `API_URL`: `{API_URL}`\n\n"
+                    "Make sure the FastAPI backend is running: `uvicorn backend.main:app`"
                 )
             except requests.exceptions.Timeout:
-                st.error("⏱️ The request timed out. The server may be cold-starting — please try again.")
+                st.error("Request timed out — the server may be cold-starting. Please try again.")
             except Exception as exc:
-                st.error(f"An unexpected error occurred: {exc}")
+                st.error(f"Unexpected error: {exc}")

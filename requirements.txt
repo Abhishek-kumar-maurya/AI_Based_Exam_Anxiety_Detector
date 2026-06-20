@@ -1,20 +1,18 @@
-# ── CPU-only PyTorch (avoids the 800MB CUDA wheel — fits in 512MB RAM) ────────
+# Runtime dependencies — installed on Render
+# PyTorch (CPU-only wheel, avoids the 800 MB CUDA build)
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.2.2+cpu
-torchvision==0.17.2+cpu
+torch==2.4.1+cpu
 
-# ── Core ML & Data ─────────────────────────────────────────────────────────
+# ML
 transformers>=4.30.0,<5.0.0
 huggingface-hub>=0.20.0,<2.0.0
 numpy>=1.24.0,<2.0.0
-pandas>=2.0.0,<3.0.0
-scikit-learn>=1.2.0,<2.0.0
 
-# ── Backend ─────────────────────────────────────────────────────────────────
+# Backend
 fastapi>=0.110.0,<1.0.0
 uvicorn[standard]>=0.23.0,<1.0.0
 pydantic>=2.0.0,<3.0.0
 
-# ── Frontend ─────────────────────────────────────────────────────────────────
+# Frontend
 streamlit>=1.32.0,<2.0.0
 requests>=2.31.0,<3.0.0

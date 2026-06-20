@@ -2,13 +2,12 @@ services:
   - type: web
     name: exam-anxiety-detector
     runtime: python
+    pythonVersion: "3.11.0"
     region: oregon
     plan: free
-    buildCommand: pip install -r requirements.txt && pip install huggingface-hub
+    buildCommand: pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
     startCommand: bash start.sh
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
       # ── Required: set this in the Render dashboard ─────────────────────────
       # Your Hugging Face repo id that holds the trained model weights.
       # Example: your-username/exam-anxiety-bert
@@ -18,3 +17,12 @@ services:
       # ── Optional: only needed if your HF repo is private ──────────────────
       - key: HUGGING_FACE_HUB_TOKEN
         sync: false
+      # ── Memory optimizations ───────────────────────────────────────────────
+      - key: TRANSFORMERS_VERBOSITY
+        value: error
+      - key: HF_HUB_DISABLE_PROGRESS_BARS
+        value: "1"
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"
+      - key: STREAMLIT_SERVER_MAX_UPLOAD_SIZE
+        value: "5"

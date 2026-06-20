@@ -1,26 +1,26 @@
 #!/bin/bash
+# start.sh — launches both services on Render (free tier, single dyno)
 set -e
 
-echo "🚀 Starting Exam Anxiety Detector (monolithic mode)..."
+echo "🚀 Starting Exam Anxiety Detector…"
 
-# ── Start FastAPI backend on internal port 8000 ──────────────────────────────
-echo "Starting FastAPI backend on port 8000..."
+# Start FastAPI backend on port 8000 (internal)
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
-# ── Wait for the backend to be ready (model load can take ~30s on cold start) ─
-echo "Waiting for backend to be ready..."
+# Wait for the backend to become healthy (model load can take ~30 s on cold start)
+echo "Waiting for backend…"
 for i in $(seq 1 60); do
   if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
-    echo "✅ Backend is ready!"
+    echo "✅ Backend ready!"
     break
   fi
-  echo "  ...waiting ($i/60)"
+  echo "  …waiting ($i/60)"
   sleep 3
 done
 
-# ── Start Streamlit frontend on the public $PORT ──────────────────────────────
-echo "Starting Streamlit frontend on port $PORT..."
+# Start Streamlit frontend on the public $PORT
+echo "Starting Streamlit on port $PORT…"
 streamlit run frontend/app.py \
   --server.port "$PORT" \
   --server.address 0.0.0.0 \
@@ -28,5 +28,5 @@ streamlit run frontend/app.py \
   --server.enableCORS false \
   --server.enableXsrfProtection false
 
-# If Streamlit exits, kill the backend too
+# Clean up backend when Streamlit exits
 kill $BACKEND_PID
